@@ -10,7 +10,7 @@ import fileStuf as files
 WIDTH = 480
 HEIGHT = 720
 FPS = 120
-SPEED = 1
+MAX_SPEED = 10
 MARGIN = 4
 
 TILE_WIDTH = 120
@@ -32,7 +32,7 @@ def game():
 
     global SURF, FPSCLOCK
 
-    name = input()
+    speed = 1
 
 
     rows = []
@@ -70,20 +70,20 @@ def game():
         if rows[0][1] > HEIGHT:
             rows.append(newRow(rows))
             if not rows[0][2]:
-                endGame(score)
+                
                 break
             rows.pop(0)
         for row in rows:
             color = (0, 0, 0) if not row[2] else (0, 187, 255)
             pygame.draw.rect(SURF, color,  pygame.Rect(TILE_WIDTH*row[0], row[1], TILE_WIDTH, TILE_HEIGHT))
-            row[1]+=SPEED
+            row[1]+=speed
         FPSCLOCK.tick(FPS)
         pygame.display.update()
-    highScore = files.findHighScore()
+
+        if score>= speed**3 and speed<=MAX_SPEED:
+            speed+=1
     
-    if score>highScore:
-        print("New High Score")
-        files.newHighScore(name, highScore)
+    return score
     
 
     
@@ -92,13 +92,70 @@ def game():
 
         
 
-def endGame(score):
+def endScreen(name, score):
+    print("Here")
     global SURF
     pygame.font.init()
-    fontObj = pygame.font.Font('font.ttf', 100)
-    textSurfaceObj = fontObj.render(str("Game\nOver\n\nScore = " + str(score)), True, (0, 0, 255), (127, 127, 127))
+    SURF.fill((255, 255, 255))
+    fontObj = pygame.font.Font('font.ttf', 20)
+    textSurfaceObj = fontObj.render(("Game\nOver\n\nScore: " + str(score)), True, (0, 0, 255), (255, 255, 255))
     SURF.blit(textSurfaceObj,(0, 0))
+    textSurfaceObj = fontObj.render(("Alt+F4 to exit"), True, (0, 0, 255), (255, 255, 255))
+    SURF.blit(textSurfaceObj, (0, 650))
+    textSurfaceObj = fontObj.render(("SpaceBar to play again"), True, (0, 0, 255), (255, 255, 255))
+    SURF.blit(textSurfaceObj, (0, 690))
+    check = False
+    
+
+    files.addScore(name, score)
+
+    topScores = files.topScores()
+    i = 0
+    print(topScores)
+    for scores in topScores:
+        textSurfaceObj = fontObj.render((scores[0]+ " : " + str(scores[1])), True, (0, 0, 255), (255, 255, 255))
+        SURF.blit(textSurfaceObj, (200, 50 + 30*i))
+        i+=1
     pygame.display.update()
+    
+    while True:
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                pygame.quit()
+                sys.exit()
+            if event.type == KEYDOWN and event.key == K_SPACE:
+                check = True
+        if check:
+            break
+
+
+
+def startScreen():
+    global SURF
+    pygame.font.init()
+    SURF.fill((255, 255, 255))
+    fontObj = pygame.font.Font('font.ttf', 20)
+    textSurfaceObj = fontObj.render(
+        ("Enter name in terminal"), True, (0, 0, 255), (255, 255, 255))
+    SURF.blit(textSurfaceObj, (0, 0))
+    textSurfaceObj = fontObj.render(
+        ("Then press spacebar to start"), True, (0, 0, 255), (255, 255, 255))
+    SURF.blit(textSurfaceObj, (0, HEIGHT/2))
+    pygame.display.update()
+    name = input()
+
+    check = False
+    while True:
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                pygame.quit()
+                sys.exit()
+            if event.type == KEYDOWN and event.key == K_SPACE:
+                check = True
+        if check:
+            break
+    return name
+
 
 
 
@@ -119,7 +176,12 @@ def main():
             if event.type == pygame.QUIT:
                 pygame.quit()
                 sys.exit()
-        game()
+        name = startScreen()
+        if name == 'ai':
+            AI = threading.Thread(target = ai.main)
+            AI.start()
+        score = game()
+        endScreen(name, score)
 
 if __name__ == '__main__':
     GAME = threading.Thread(target = main)
